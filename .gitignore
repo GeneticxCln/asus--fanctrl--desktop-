@@ -1,0 +1,45 @@
+# Fan Control System .gitignore
+
+# User-specific configuration files
+.fan_control_config
+*_config.local
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
+logs/
+
+# Backup files
+*.bak
+*.backup
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-*
+.atom/
+
+# Distribution-specific temporary files
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Runtime directories
+.cache/
+tmp/

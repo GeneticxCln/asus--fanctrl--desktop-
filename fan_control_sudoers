@@ -1,0 +1,9 @@
+# Allow sasha to control fan PWM without password
+# Add this to /etc/sudoers.d/fan-control (run: sudo visudo -f /etc/sudoers.d/fan-control)
+
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon3/pwm*_enable
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon3/pwm*
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon4/pwm*_enable
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon4/pwm*
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon5/pwm*_enable
+sasha ALL=(root) NOPASSWD: /usr/bin/tee /sys/devices/platform/nct6775.656/hwmon/hwmon5/pwm*
