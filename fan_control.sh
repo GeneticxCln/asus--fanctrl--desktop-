@@ -4,8 +4,12 @@
 # Usage: ./fan_control.sh [pwm_channel] [speed_percentage]
 # Example: ./fan_control.sh 1 50    (set PWM1 to 50%)
 
-# Auto-detect the correct hwmon path for NCT6775 chip
-PWM_BASE_PATH=$(find /sys/devices/platform/nct6775.656/hwmon/ -name "pwm1" 2>/dev/null | head -1 | sed 's/\/pwm1$//' || echo "/sys/devices/platform/nct6775.656/hwmon/hwmon5")
+# Auto-detect the correct hwmon path for NCT6798 chip
+PWM_BASE_PATH=$(find /sys/class/hwmon/ -name "hwmon*" -exec sh -c 'if [ -f "$1/name" ] && grep -q "nct6798" "$1/name" 2>/dev/null; then echo "$1"; fi' _ {} \; | head -1)
+# Fallback to hwmon6 if auto-detection fails
+if [ -z "$PWM_BASE_PATH" ]; then
+    PWM_BASE_PATH="/sys/class/hwmon/hwmon6"
+fi
 
 # Function to show current fan status
 show_status() {
