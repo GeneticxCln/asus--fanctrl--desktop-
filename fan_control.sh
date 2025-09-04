@@ -6,9 +6,9 @@
 
 # Auto-detect the correct hwmon path for NCT6798 chip
 PWM_BASE_PATH=$(find /sys/class/hwmon/ -name "hwmon*" -exec sh -c 'if [ -f "$1/name" ] && grep -q "nct6798" "$1/name" 2>/dev/null; then echo "$1"; fi' _ {} \; | head -1)
-# Fallback to hwmon6 if auto-detection fails
+# Fallback to hwmon5 if auto-detection fails
 if [ -z "$PWM_BASE_PATH" ]; then
-    PWM_BASE_PATH="/sys/class/hwmon/hwmon6"
+    PWM_BASE_PATH="/sys/class/hwmon/hwmon5"
 fi
 
 # Function to show current fan status
