@@ -198,6 +198,14 @@ sudo modprobe nct6775
 ls /sys/devices/platform/nct6775.*
 ```
 
+### Manual Sudoers Configuration
+If the automatic installer fails, you can manually create the sudoers configuration:
+```bash
+# Create sudoers file with correct permissions
+sudo sh -c 'echo "sasha ALL=(root) NOPASSWD: /usr/bin/tee" > /etc/sudoers.d/fanctrl'
+sudo chmod 0440 /etc/sudoers.d/fanctrl
+```
+
 ### Permission Denied
 ```bash
 # Check sudoers configuration
