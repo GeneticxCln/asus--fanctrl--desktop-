@@ -1,0 +1,47 @@
+[Unit]
+Description=Smart Fan Control Daemon for ASUS ROG STRIX B550-F
+Documentation=file:///home/sasha/fanctrl/smart_fan_daemon.sh
+After=multi-user.target
+Wants=network.target
+
+[Service]
+Type=exec
+User=root
+Group=root
+ExecStart=/home/sasha/fanctrl/smart_fan_daemon.sh run
+ExecStop=/bin/bash -c 'echo 5 > /sys/class/hwmon/hwmon2/pwm1_enable'
+Restart=on-failure
+RestartSec=30
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/sys/class/hwmon/hwmon2
+ReadOnlyPaths=/home/sasha/fanctrl /home/sasha/.fan_control_config
+PrivateDevices=no
+ProtectKernelTunables=no
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+RemoveIPC=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+RestrictRealtime=yes
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+
+# Resource limits
+MemoryMax=64M
+CPUQuota=10%
+
+# Logging
+SyslogIdentifier=smart-fan-daemon
+SyslogFacility=daemon
+
+[Install]
+WantedBy=multi-user.target

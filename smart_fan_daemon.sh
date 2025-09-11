@@ -2,8 +2,24 @@
 
 # Smart Fan Control Daemon for ASUS ROG STRIX B550-F
 # This script provides temperature-based automatic fan control
+# Modified for systemd service integration with better logging
 
-PWM_BASE_PATH="/sys/devices/platform/nct6775.656/hwmon/hwmon5"
+# Auto-detect the correct hwmon path for NCT6798 chip
+PWM_BASE_PATH=$(find /sys/class/hwmon/ -name "hwmon*" -exec sh -c 'if [ -f "$1/name" ] && grep -q "nct6798" "$1/name" 2>/dev/null; then echo "$1"; fi' _ {} \; | head -1)
+# Fallback to hwmon2 if auto-detection fails
+if [ -z "$PWM_BASE_PATH" ]; then
+    PWM_BASE_PATH="/sys/class/hwmon/hwmon2"
+    echo "Warning: Auto-detection failed, using fallback path $PWM_BASE_PATH" >&2
+fi
+
+# Log to journal with the correct identifier when running as a service
+log() {
+    echo "$@"
+    if [ "${INVOCATION_ID:-}" != "" ]; then
+        echo "$@" | systemd-cat -t smart-fan-daemon -p info
+    fi
+}
+
 CONFIG_FILE="/home/sasha/.fan_control_config"
 
 # Default configuration
@@ -19,9 +35,9 @@ FAN_CONFIG[update_interval]=5
 load_config() {
     if [ -f "$CONFIG_FILE" ]; then
         source "$CONFIG_FILE"
-        echo "Configuration loaded from $CONFIG_FILE"
+        log "Configuration loaded from $CONFIG_FILE"
     else
-        echo "Using default configuration. Run '$0 config' to customize."
+        log "Using default configuration. Run '$0 config' to customize."
     fi
 }
 
@@ -43,7 +59,7 @@ FAN_CONFIG[fan_max]=${FAN_CONFIG[fan_max]}
 # Update interval (seconds)
 FAN_CONFIG[update_interval]=${FAN_CONFIG[update_interval]}
 EOF
-    echo "Configuration saved to $CONFIG_FILE"
+    log "Configuration saved to $CONFIG_FILE"
 }
 
 # Get CPU temperature
@@ -82,9 +98,19 @@ set_fan_speed() {
     
     # Ensure PWM is in manual mode
     echo 1 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        log "Error: Failed to set PWM${pwm_channel} to manual mode" >&2
+        return 1
+    fi
     
     # Set the speed
     echo $pwm_value > "${PWM_BASE_PATH}/pwm${pwm_channel}" 2>/dev/null
+    if [ $? -ne 0 ]; then
+        log "Error: Failed to set PWM${pwm_channel} speed to ${percentage}%" >&2
+        return 1
+    fi
+    
+    return 0
 }
 
 # Main daemon loop
@@ -92,27 +118,42 @@ run_daemon() {
     local pwm_channel=${FAN_CONFIG[pwm_channel]}
     local interval=${FAN_CONFIG[update_interval]}
     
-    echo "Starting smart fan control daemon..."
-    echo "PWM Channel: $pwm_channel"
-    echo "Temperature range: ${FAN_CONFIG[temp_min]}°C - ${FAN_CONFIG[temp_max]}°C"
-    echo "Fan speed range: ${FAN_CONFIG[fan_min]}% - ${FAN_CONFIG[fan_max]}%"
-    echo "Update interval: ${interval}s"
-    echo "Press Ctrl+C to stop"
-    echo ""
+    log "Starting smart fan control daemon..."
+    log "PWM Base Path: $PWM_BASE_PATH"
+    log "PWM Channel: $pwm_channel"
+    log "Temperature range: ${FAN_CONFIG[temp_min]}°C - ${FAN_CONFIG[temp_max]}°C"
+    log "Fan speed range: ${FAN_CONFIG[fan_min]}% - ${FAN_CONFIG[fan_max]}%"
+    log "Update interval: ${interval}s"
+    
+    # Check if PWM files exist and are writable
+    if [ ! -f "${PWM_BASE_PATH}/pwm${pwm_channel}" ] || [ ! -f "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" ]; then
+        log "Error: PWM files for channel ${pwm_channel} not found at ${PWM_BASE_PATH}" >&2
+        return 1
+    fi
     
     # Set initial manual mode
     echo 1 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable"
+    if [ $? -ne 0 ]; then
+        log "Error: Cannot set PWM${pwm_channel} to manual mode. Check permissions." >&2
+        return 1
+    fi
     
-    # Trap to restore automatic mode on exit
-    trap "echo 5 > '${PWM_BASE_PATH}/pwm${pwm_channel}_enable'; echo 'Restored automatic fan control'; exit 0" INT TERM
+    # Trap to restore automatic mode on exit (when running interactively)
+    trap "echo 5 > '${PWM_BASE_PATH}/pwm${pwm_channel}_enable'; log 'Restored automatic fan control'; exit 0" INT TERM
     
+    # Log initial temperature and fan speed
+    local temp=$(get_cpu_temp)
+    local target_speed=$(calculate_fan_speed $temp)
+    log "Initial CPU temperature: ${temp}°C, Setting fan speed: ${target_speed}%"
+    
+    # Main loop
     while true; do
         local temp=$(get_cpu_temp)
         local target_speed=$(calculate_fan_speed $temp)
         
         set_fan_speed $pwm_channel $target_speed
         
-        echo "$(date '+%H:%M:%S') - CPU: ${temp}°C, Fan Speed: ${target_speed}%"
+        log "$(date '+%Y-%m-%d %H:%M:%S') - CPU: ${temp}°C, Fan Speed: ${target_speed}%"
         
         sleep $interval
     done
@@ -186,6 +227,7 @@ show_help() {
     echo "  $0 status      - Show current status"
     echo ""
     echo "Configuration file: $CONFIG_FILE"
+    echo "PWM Base Path: $PWM_BASE_PATH"
 }
 
 # Test configuration
@@ -195,6 +237,7 @@ test_config() {
     local speed=$(calculate_fan_speed $temp)
     
     echo "=== Configuration Test ==="
+    echo "PWM Base Path: $PWM_BASE_PATH"
     echo "Current CPU temperature: ${temp}°C"
     echo "Calculated fan speed: ${speed}%"
     echo ""
