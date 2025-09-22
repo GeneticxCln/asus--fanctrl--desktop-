@@ -74,6 +74,11 @@ If the automatic script doesn't work for your setup:
 
 ## Recommended sudoers install and quick verification
 
+- Health check (one command):
+  ```bash
+  ./scripts/verify_fanctrl.sh
+  ```
+
 - Install sudoers rules:
   ```bash
   sudo ./install_sudoers.sh
