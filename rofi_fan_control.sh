@@ -59,7 +59,13 @@ set_fan_speed() {
 # Set fan to auto mode
 set_fan_auto() {
     local pwm_channel=$1
-    echo 5 | sudo tee "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" > /dev/null 2>&1
+    # Delegate to the core script to centralize privileged writes
+    "${SCRIPT_DIR}/fan_control.sh" auto "${pwm_channel}" 2>/dev/null
+    if [ $? -eq 0 ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 # Main menu

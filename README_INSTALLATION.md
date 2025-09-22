@@ -72,6 +72,23 @@ If the automatic script doesn't work for your setup:
 3. Run `sudo ./install_sudoers.sh` manually
 4. Add keybindings to your window manager configuration
 
+## Recommended sudoers install and quick verification
+
+- Install sudoers rules:
+  ```bash
+  sudo ./install_sudoers.sh
+  ```
+
+- Verify passwordless control works (no password prompts expected):
+  ```bash
+  ./fan_control.sh set 1 40
+  ./fan_control.sh auto 1
+  ```
+
+Notes:
+- The installer targets the invoking user and uses generic /sys/class/hwmon paths.
+- The ROFI GUI delegates privileged writes to fan_control.sh, keeping sudo touches in one place.
+
 ## Post-Installation
 
 After installation, test everything with:
