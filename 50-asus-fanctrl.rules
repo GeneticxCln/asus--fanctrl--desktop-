@@ -1,0 +1,7 @@
+# ASUS Fan Control - udev rules for NCT6775/NCT6798 chips
+# Grants write access to PWM control files for the 'fan-control' group
+
+# Match NCT6775/NCT6798 on the platform bus
+ACTION=="add", SUBSYSTEM=="hwmon", ATTRS{name}=="nct6775"|"nct6798", \
+    RUN+="/usr/bin/chmod 0664 %S%p/pwm*", \
+    RUN+="/usr/bin/chgrp fan-control %S%p/pwm*"

@@ -1,0 +1,23 @@
+{
+  "id": "asus-fan-control",
+  "name": "ASUS Fan Control",
+  "version": "1.0.0",
+  "minNoctaliaVersion": "3.6.0",
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": "https://github.com/yourusername/asus--fanctrl--desktop-",
+  "description": "Control ASUS motherboard fans with presets and monitoring",
+  "tags": ["Bar", "System"],
+  "entryPoints": {
+    "main": "Main.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "metadata": {
+    "defaultSettings": {
+      "pwmChannel1": 50,
+      "pwmChannel3": 50,
+      "pwmChannel6": 50
+    }
+  }
+}

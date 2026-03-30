@@ -4,11 +4,20 @@
 # Usage: ./fan_control.sh [pwm_channel] [speed_percentage]
 # Example: ./fan_control.sh 1 50    (set PWM1 to 50%)
 
-# Auto-detect the correct hwmon path for NCT6798 chip
-PWM_BASE_PATH=$(find /sys/class/hwmon/ -name "hwmon*" -exec sh -c 'if [ -f "$1/name" ] && grep -q "nct6798" "$1/name" 2>/dev/null; then echo "$1"; fi' _ {} \; | head -1)
-# Fallback to hwmon5 if auto-detection fails
-if [ -z "$PWM_BASE_PATH" ]; then
-    PWM_BASE_PATH="/sys/class/hwmon/hwmon5"
+# Load shared library
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -f "${LIB_DIR}/fan_control_lib.sh" ]; then
+    source "${LIB_DIR}/fan_control_lib.sh"
+else
+    echo "Error: fan_control_lib.sh not found!" >&2
+    exit 1
+fi
+
+# Auto-detect the correct hwmon path
+PWM_BASE_PATH=$(find_hwmon_path)
+if [ $? -ne 0 ]; then
+    log_error "Could not locate hardware monitor for NCT6775/NCT6798 chips."
+    exit 1
 fi
 
 # Function to show current fan status
@@ -18,7 +27,7 @@ show_status() {
     for i in {1..7}; do
         if [ -f "${PWM_BASE_PATH}/fan${i}_input" ]; then
             rpm=$(cat "${PWM_BASE_PATH}/fan${i}_input" 2>/dev/null)
-            if [ "$rpm" != "0" ]; then
+            if [ -n "$rpm" ] && [ "$rpm" != "0" ]; then
                 echo "  Fan$i: ${rpm} RPM"
             fi
         fi
@@ -46,19 +55,20 @@ show_status() {
     done
     
     echo -e "\nTemperatures:"
-    echo "  CPU: $(sensors | grep 'Tctl:' | awk '{print $2}')"
-    echo "  System: $(sensors | grep 'SYSTIN:' | awk '{print $2}')"
+    cpu_temp=$(sensors | grep 'Tctl:' | awk '{print $2}')
+    sys_temp=$(sensors | grep 'SYSTIN:' | awk '{print $2}')
+    echo "  CPU: ${cpu_temp:-N/A}"
+    echo "  System: ${sys_temp:-N/A}"
 }
 
 # Function to set PWM to manual mode
 set_manual_mode() {
     local pwm_channel=$1
-    echo "Setting PWM${pwm_channel} to manual mode..."
-    echo 1 | sudo tee "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "✓ PWM${pwm_channel} is now in manual mode"
+    log_info "Setting PWM${pwm_channel} to manual mode..."
+    if echo 1 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" 2>/dev/null; then
+        log_success "PWM${pwm_channel} is now in manual mode"
     else
-        echo "✗ Failed to set PWM${pwm_channel} to manual mode"
+        log_error "Failed to set PWM${pwm_channel} to manual mode. Permission denied?"
         return 1
     fi
 }
@@ -71,12 +81,11 @@ set_fan_speed() {
     # Convert percentage to PWM value (0-255)
     local pwm_value=$((percentage * 255 / 100))
     
-    echo "Setting PWM${pwm_channel} to ${percentage}% (${pwm_value}/255)..."
-    echo $pwm_value | sudo tee "${PWM_BASE_PATH}/pwm${pwm_channel}" > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "✓ PWM${pwm_channel} set to ${percentage}%"
+    log_info "Setting PWM${pwm_channel} to ${percentage}% (${pwm_value}/255)..."
+    if echo $pwm_value > "${PWM_BASE_PATH}/pwm${pwm_channel}" 2>/dev/null; then
+        log_success "PWM${pwm_channel} set to ${percentage}%"
     else
-        echo "✗ Failed to set PWM${pwm_channel}"
+        log_error "Failed to set PWM${pwm_channel}. Permission denied?"
         return 1
     fi
 }
@@ -84,12 +93,11 @@ set_fan_speed() {
 # Function to reset PWM to automatic mode
 set_auto_mode() {
     local pwm_channel=$1
-    echo "Setting PWM${pwm_channel} to automatic mode (Smart Fan IV)..."
-    echo 5 | sudo tee "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" > /dev/null
-    if [ $? -eq 0 ]; then
-        echo "✓ PWM${pwm_channel} is now in automatic mode"
+    log_info "Setting PWM${pwm_channel} to automatic mode (Smart Fan IV)..."
+    if echo 5 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" 2>/dev/null; then
+        log_success "PWM${pwm_channel} is now in automatic mode"
     else
-        echo "✗ Failed to set PWM${pwm_channel} to automatic mode"
+        log_error "Failed to set PWM${pwm_channel} to automatic mode. Permission denied?"
         return 1
     fi
 }
@@ -102,7 +110,6 @@ case "$1" in
     "manual")
         if [ -z "$2" ]; then
             echo "Usage: $0 manual [pwm_channel]"
-            echo "Example: $0 manual 1"
             exit 1
         fi
         set_manual_mode $2
@@ -110,7 +117,6 @@ case "$1" in
     "auto")
         if [ -z "$2" ]; then
             echo "Usage: $0 auto [pwm_channel]"
-            echo "Example: $0 auto 1"
             exit 1
         fi
         set_auto_mode $2
@@ -118,7 +124,6 @@ case "$1" in
     "set")
         if [ -z "$2" ] || [ -z "$3" ]; then
             echo "Usage: $0 set [pwm_channel] [percentage]"
-            echo "Example: $0 set 1 75"
             exit 1
         fi
         
@@ -127,12 +132,17 @@ case "$1" in
         
         # Validate percentage
         if [ "$percentage" -lt 0 ] || [ "$percentage" -gt 100 ]; then
-            echo "Error: Percentage must be between 0 and 100"
+            log_error "Percentage must be between 0 and 100"
             exit 1
         fi
         
         # Set to manual mode first, then set speed
-        set_manual_mode $pwm_channel && set_fan_speed $pwm_channel $percentage
+        if [ "$EUID" -ne 0 ]; then
+            sudo -n /usr/local/bin/asus-fanctrl-detect set-enable "$pwm_channel" 1 && \
+            sudo -n /usr/local/bin/asus-fanctrl-detect set-pwm "$pwm_channel" "$percentage"
+        else
+            set_manual_mode $pwm_channel && set_fan_speed $pwm_channel $percentage
+        fi
         ;;
     "help"|"-h"|"--help")
         echo "Fan Control Script for ASUS ROG STRIX B550-F"
@@ -142,14 +152,7 @@ case "$1" in
         echo "  $0 auto [channel]        - Set PWM channel to automatic mode"
         echo "  $0 set [channel] [%]     - Set PWM channel to specific percentage"
         echo ""
-        echo "Examples:"
-        echo "  $0                       - Show status"
-        echo "  $0 set 1 60              - Set PWM1 to 60%"
-        echo "  $0 set 3 40              - Set PWM3 to 40%"
-        echo "  $0 auto 1                - Return PWM1 to automatic control"
-        echo ""
         echo "Available PWM channels: 1, 2, 3, 4, 5, 6"
-        echo "Connected fans detected: 3, 6"
         ;;
     *)
         echo "Unknown command: $1"
@@ -157,3 +160,4 @@ case "$1" in
         exit 1
         ;;
 esac
+

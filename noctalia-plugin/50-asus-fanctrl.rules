@@ -1,0 +1,24 @@
+// Polkit rule for ASUS Fan Control
+// Allows passwordless control of fan PWM via asus-fanctrl-detect
+// Install to: /etc/polkit-1/rules.d/50-asus-fanctrl.rules
+// Note: USERNAME_PLACEHOLDER will be replaced during installation
+
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.policykit.exec" &&
+        subject.user === "quinton") {
+        
+        var command = action.lookup("program");
+        
+        // 1. Allow loading of nct6775 kernel module
+        if (command === "/usr/bin/modprobe nct6775" || 
+            command === "/sbin/modprobe nct6775") {
+            return polkit.Result.YES;
+        }
+
+        // 2. Allow execution of fan control helper script (with any arguments)
+        // The script itself performs input validation.
+        if (command && command.startsWith("/usr/local/bin/asus-fanctrl-detect")) {
+            return polkit.Result.YES;
+        }
+    }
+});

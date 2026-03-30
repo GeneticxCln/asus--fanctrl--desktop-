@@ -1,0 +1,11 @@
+# ASUS Fan Control - Passwordless Sudo Configuration
+# Install with: sudo cp fanctrl_sudoers_zsh /etc/sudoers.d/fanctrl
+# Then set permissions: sudo chmod 0440 /etc/sudoers.d/fanctrl
+
+# Allow user to control fan PWM without password
+# This grants minimal privileges for PWM control only
+
+# Replace 'USERNAME_PLACEHOLDER' with your username
+USERNAME_PLACEHOLDER ALL=(root) NOPASSWD: /usr/bin/tee /sys/class/hwmon/hwmon*/pwm*_enable
+USERNAME_PLACEHOLDER ALL=(root) NOPASSWD: /usr/bin/tee /sys/class/hwmon/hwmon*/pwm*
+USERNAME_PLACEHOLDER ALL=(root) NOPASSWD: /usr/local/bin/asus-fanctrl-detect

@@ -187,13 +187,13 @@ The motherboard BIOS will take over fan control if the system overheats, so hard
 ### Hyprland Keybinds (add to ~/.config/hypr/hyprland.conf)
 ```
 # Fan Control GUI
-bind = CTRL ALT, F, exec, /home/sasha/rofi_fan_control.sh
+bind = CTRL ALT, F, exec, ./rofi_fan_control.sh
 
-# Quick presets
-bind = CTRL ALT, 1, exec, /home/sasha/fan_control.sh set 1 30; /home/sasha/fan_control.sh set 3 30; /home/sasha/fan_control.sh set 6 30  # Silent
-bind = CTRL ALT, 2, exec, /home/sasha/fan_control.sh set 1 50; /home/sasha/fan_control.sh set 3 50; /home/sasha/fan_control.sh set 6 50  # Quiet
-bind = CTRL ALT, 3, exec, /home/sasha/fan_control.sh set 1 80; /home/sasha/fan_control.sh set 3 80; /home/sasha/fan_control.sh set 6 80  # Performance
-bind = CTRL ALT, 0, exec, /home/sasha/fan_control.sh auto 1; /home/sasha/fan_control.sh auto 3; /home/sasha/fan_control.sh auto 6  # Auto
+# Quick presets (ensure script is in your PATH or specify full path)
+bind = CTRL ALT, 1, exec, fan_control.sh set 1 30; fan_control.sh set 3 30; fan_control.sh set 6 30  # Silent
+bind = CTRL ALT, 2, exec, fan_control.sh set 1 50; fan_control.sh set 3 50; fan_control.sh set 6 50  # Quiet
+bind = CTRL ALT, 3, exec, fan_control.sh set 1 80; fan_control.sh set 3 80; fan_control.sh set 6 80  # Performance
+bind = CTRL ALT, 0, exec, fan_control.sh auto 1; fan_control.sh auto 3; fan_control.sh auto 6  # Auto
 ```
 
 ## Additional Tools Available

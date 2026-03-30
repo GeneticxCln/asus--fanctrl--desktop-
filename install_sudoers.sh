@@ -28,6 +28,7 @@ cat > "$SUDOERS_FILE" << EOF
 
 $TARGET_USER ALL=(root) NOPASSWD: /usr/bin/tee /sys/class/hwmon/hwmon*/pwm*_enable
 $TARGET_USER ALL=(root) NOPASSWD: /usr/bin/tee /sys/class/hwmon/hwmon*/pwm*
+$TARGET_USER ALL=(root) NOPASSWD: /usr/local/bin/asus-fanctrl-detect
 EOF
 
 # Set proper permissions on the sudoers file

@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(github.com)",
+      "Bash(pkill *)",
+      "Bash(bash *)",
+      "Bash(ls *)",
+      "Bash(xargs *)",
+      "Bash(/home/quinton/asus--fanctrl--desktop-/noctalia-plugin/asus-fanctrl-detect *)",
+      "Bash(pgrep *)",
+      "Bash(/bin/sh *)",
+      "Bash(journalctl *)",
+      "Bash(qs *)",
+      "Bash(timeout *)",
+      "Bash(true)",
+      "Bash(cat *)",
+      "Bash(/usr/local/bin/asus-fanctrl-detect *)",
+      "Bash(git checkout *)"
+    ]
+  },
+  "$version": 3
+}

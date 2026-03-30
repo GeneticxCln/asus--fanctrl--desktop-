@@ -1,0 +1,359 @@
+#!/bin/bash
+# ASUS Fan Control - Hardware Detection Helper
+# Detects NCT6775/NCT6798 hardware and can load the module if needed
+
+set -e
+
+# Only use colors when outputting to a terminal
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m'
+else
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
+
+print_status() { echo -e "${BLUE}[INFO]${NC} $1" >&2; }
+print_success() { echo -e "${GREEN}[OK]${NC} $1" >&2; }
+print_warning() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
+print_error() { echo -e "${RED}[ERR]${NC} $1" >&2; }
+
+# Function to detect hardware
+detect_hardware() {
+    for hwmon_path in /sys/class/hwmon/hwmon*; do
+        if [ -f "$hwmon_path/name" ]; then
+            local name
+            name=$(cat "$hwmon_path/name" 2>/dev/null)
+            if echo "$name" | grep -qi "nct6798\|nct6775"; then
+                echo "$hwmon_path"
+                return 0
+            fi
+        fi
+    done
+
+    # Also check platform devices
+    for platform_path in /sys/devices/platform/nct6775.*; do
+        if [ -d "$platform_path" ]; then
+            for hwmon_sub in "$platform_path"/hwmon/hwmon*; do
+                if [ -f "$hwmon_sub/name" ]; then
+                    local name
+                    name=$(cat "$hwmon_sub/name" 2>/dev/null)
+                    if echo "$name" | grep -qi "nct6798\|nct6775"; then
+                        echo "$hwmon_sub"
+                        return 0
+                    fi
+                fi
+            done
+        fi
+    done
+
+    return 1
+}
+
+# Function to check if module is loaded
+check_module_loaded() {
+    if lsmod | grep -q "^nct6775"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Function to load module
+load_module() {
+    print_status "Loading nct6775 kernel module..."
+
+    if [ "$EUID" -eq 0 ]; then
+        modprobe nct6775
+    elif command -v pkexec &> /dev/null; then
+        pkexec /sbin/modprobe nct6775
+    elif command -v sudo &> /dev/null; then
+        sudo modprobe nct6775
+    else
+        print_error "No privilege escalation tool found (pkexec/sudo)"
+        return 1
+    fi
+
+    if [ $? -eq 0 ]; then
+        print_success "nct6775 module loaded"
+        sleep 2
+        return 0
+    else
+        print_error "Failed to load nct6775 module"
+        return 1
+    fi
+}
+
+# Main logic
+case "${1:-detect}" in
+    detect)
+        # Print ONLY the path to stdout (no colors, no extra text)
+        if path=$(detect_hardware); then
+            echo "$path"
+            exit 0
+        else
+            exit 1
+        fi
+        ;;
+
+    load)
+        if check_module_loaded; then
+            print_success "nct6775 module already loaded"
+        else
+            if ! load_module; then
+                exit 1
+            fi
+        fi
+
+        # Print ONLY the path to stdout
+        if path=$(detect_hardware); then
+            echo "$path"
+            exit 0
+        else
+            print_error "Hardware not detected even after loading module"
+            exit 1
+        fi
+        ;;
+
+    status)
+        echo "╭──────────────────────────────────────╮"
+        echo "│     ASUS Fan Control - Status        │"
+        echo "╰──────────────────────────────────────╯"
+        echo ""
+
+        if check_module_loaded; then
+            print_success "nct6775 kernel module: LOADED"
+        else
+            print_error "nct6775 kernel module: NOT LOADED"
+        fi
+
+        echo ""
+        print_status "Scanning for NCT6775/NCT6798 hardware..."
+
+        if path=$(detect_hardware); then
+            print_success "Hardware detected at: $path"
+            echo ""
+
+            echo "Available PWM channels:"
+            for i in {1..6}; do
+                if [ -f "$path/pwm${i}" ]; then
+                    pwm_val=$(cat "$path/pwm${i}" 2>/dev/null || echo "0")
+                    pwm_pct=$((pwm_val * 100 / 255))
+                    enable=$(cat "$path/pwm${i}_enable" 2>/dev/null || echo "0")
+                    mode="Unknown"
+                    case $enable in
+                        0) mode="Disabled" ;;
+                        1) mode="Manual" ;;
+                        2) mode="Thermal Cruise" ;;
+                        3) mode="Speed Cruise" ;;
+                        4) mode="Smart Fan III" ;;
+                        5) mode="Smart Fan IV (Auto)" ;;
+                    esac
+                    echo "  PWM${i}: ${pwm_pct}% - ${mode}"
+                fi
+            done
+
+            echo ""
+            echo "Fan RPMs:"
+            for i in {1..7}; do
+                if [ -f "$path/fan${i}_input" ]; then
+                    rpm=$(cat "$path/fan${i}_input" 2>/dev/null || echo "0")
+                    if [ "$rpm" != "0" ]; then
+                        echo "  Fan${i}: ${rpm} RPM"
+                    fi
+                fi
+            done
+        else
+            print_error "No compatible hardware found"
+            echo ""
+            print_status "Try loading the module with: $0 load"
+        fi
+        ;;
+
+    set-pwm)
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            print_error "Usage: $0 set-pwm [channel] [percentage]"
+            exit 1
+        fi
+
+        channel="$2"
+        percentage="$3"
+
+        # Validate channel (1-6)
+        if [[ ! "$channel" =~ ^[1-6]$ ]]; then
+            print_error "Invalid channel: $channel (must be 1-6)"
+            exit 1
+        fi
+
+        # Validate percentage (0-100)
+        if [[ ! "$percentage" =~ ^[0-9]+$ ]] || [ "$percentage" -lt 0 ] || [ "$percentage" -gt 100 ]; then
+            print_error "Invalid percentage: $percentage (must be 0-100)"
+            exit 1
+        fi
+
+        if path=$(detect_hardware); then
+            pwm_val=$((percentage * 255 / 100))
+            pwm_file="$path/pwm$channel"
+            if [ -f "$pwm_file" ]; then
+                echo "$pwm_val" > "$pwm_file"
+                print_success "PWM$channel set to $percentage% ($pwm_val/255)"
+                exit 0
+            else
+                print_error "PWM file not found: $pwm_file"
+                exit 1
+            fi
+        else
+            print_error "Hardware not detected"
+            exit 1
+        fi
+        ;;
+
+    set-enable)
+        if [ -z "$2" ] || [ -z "$3" ]; then
+            print_error "Usage: $0 set-enable [channel] [mode]"
+            exit 1
+        fi
+
+        channel="$2"
+        mode="$3"
+
+        # Validate channel (1-6)
+        if [[ ! "$channel" =~ ^[1-6]$ ]]; then
+            print_error "Invalid channel: $channel (must be 1-6)"
+            exit 1
+        fi
+
+        # Validate mode (0-5)
+        # 0: Disabled, 1: Manual, 2: Thermal Cruise, 3: Speed Cruise, 4: Smart Fan III, 5: Smart Fan IV
+        if [[ ! "$mode" =~ ^[0-5]$ ]]; then
+            print_error "Invalid mode: $mode (must be 0-5)"
+            exit 1
+        fi
+
+        if path=$(detect_hardware); then
+            enable_file="$path/pwm${channel}_enable"
+            if [ -f "$enable_file" ]; then
+                echo "$mode" > "$enable_file"
+                print_success "PWM$channel mode set to $mode"
+                exit 0
+            else
+                print_error "Enable file not found: $enable_file"
+                exit 1
+            fi
+        else
+            print_error "Hardware not detected"
+            exit 1
+        fi
+        ;;
+
+    set-all)
+        # Usage: set-all [chan1] [pct1] [chan2] [pct2] ...
+        if [ "$#" -lt 3 ] || [ $((($# - 1) % 2)) -ne 0 ]; then
+            print_error "Usage: $0 set-all [channel] [percentage] [[channel] [percentage] ...]"
+            exit 1
+        fi
+
+        if path=$(detect_hardware); then
+            shift # remove 'set-all'
+            while [ "$#" -gt 0 ]; do
+                channel="$1"
+                percentage="$2"
+                shift 2
+
+                # Validate channel (1-6)
+                if [[ ! "$channel" =~ ^[1-6]$ ]]; then
+                    print_warning "Invalid channel: $channel (skipping)"
+                    continue
+                fi
+
+                # Validate percentage (0-100)
+                if [[ ! "$percentage" =~ ^[0-9]+$ ]] || [ "$percentage" -lt 0 ] || [ "$percentage" -gt 100 ]; then
+                    print_warning "Invalid percentage: $percentage for channel $channel (skipping)"
+                    continue
+                fi
+
+                # 1. Enable Manual Mode (1)
+                enable_file="$path/pwm${channel}_enable"
+                if [ -f "$enable_file" ]; then
+                    echo "1" > "$enable_file"
+                    print_status "PWM$channel enabled (manual mode)"
+                fi
+
+                # 2. Set PWM Value
+                pwm_val=$((percentage * 255 / 100))
+                pwm_file="$path/pwm$channel"
+                if [ -f "$pwm_file" ]; then
+                    echo "$pwm_val" > "$pwm_file"
+                    print_success "PWM$channel set to $percentage% ($pwm_val/255)"
+                else
+                    print_error "PWM file not found for channel $channel"
+                fi
+            done
+            exit 0
+        else
+            print_error "Hardware not detected"
+            exit 1
+        fi
+        ;;
+
+    set-enable-all)
+        # Usage: set-enable-all [chan1] [mode1] [chan2] [mode2] ...
+        if [ "$#" -lt 3 ] || [ $((($# - 1) % 2)) -ne 0 ]; then
+            print_error "Usage: $0 set-enable-all [channel] [mode] [[channel] [mode] ...]"
+            exit 1
+        fi
+
+        if path=$(detect_hardware); then
+            shift # remove 'set-enable-all'
+            while [ "$#" -gt 0 ]; do
+                channel="$1"
+                mode="$2"
+                shift 2
+
+                # Validate channel (1-6)
+                if [[ ! "$channel" =~ ^[1-6]$ ]]; then
+                    print_warning "Invalid channel: $channel (skipping)"
+                    continue
+                fi
+
+                # Validate mode (0-5)
+                if [[ ! "$mode" =~ ^[0-5]$ ]]; then
+                    print_warning "Invalid mode: $mode for channel $channel (skipping)"
+                    continue
+                fi
+
+                enable_file="$path/pwm${channel}_enable"
+                if [ -f "$enable_file" ]; then
+                    echo "$mode" > "$enable_file"
+                    print_success "PWM$channel mode set to $mode"
+                else
+                    print_error "Enable file not found for channel $channel"
+                fi
+            done
+            exit 0
+        else
+            print_error "Hardware not detected"
+            exit 1
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 {detect|load|status|set-pwm|set-enable|set-all|set-enable-all}"
+        echo ""
+        echo "Commands:"
+        echo "  detect         - Detect hardware and print path (default)"
+        echo "  load           - Load nct6775 module and detect hardware"
+        echo "  status         - Show full status report"
+        echo "  set-pwm        - Set PWM value (0-100%)"
+        echo "  set-enable     - Set PWM mode (0-5)"
+        echo "  set-all        - Batch set multiple PWM values"
+        echo "  set-enable-all - Batch set multiple PWM modes"
+        exit 1
+        ;;
+esac
