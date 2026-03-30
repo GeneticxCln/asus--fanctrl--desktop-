@@ -1,178 +1,481 @@
-# ASUS Fan Control - Zsh Plugin Integration
+# Zsh Plugin Integration
 
-Quick integration guide for using the fan control system as a zsh plugin on Arch/Noctalia.
+> Terminal-based fan control with convenient aliases and minimal resource usage
 
-## 🚀 Quick Setup
+[![Zsh](https://img.shields.io/badge/Zsh-Plugin-red)]()
+[![Shell](https://img.shields.io/badge/Shell-Bash-orange)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow)]()
 
-### One-Command Installation
+---
+
+## Features
+
+- **⚡ Quick Aliases** - One-command fan control presets
+- **📊 Status Display** - Colorful fan status overview
+- **🎯 Manual Control** - Precise PWM channel adjustment
+- **🖥️ Optional GUI** - Launch Rofi GUI if installed
+- **🔒 Secure** - Minimal sudoers configuration
+- **💪 Lightweight** - Minimal resource usage
+- **🔄 Auto-detection** - Hardware detection and module loading
+
+---
+
+## Installation
+
+### Quick Install
+
 ```bash
+# Run the installer
 ./setup_zsh_plugin.sh
-```
 
-This will:
-- ✅ Install dependencies (lm_sensors, rofi)
-- ✅ Detect your NCT6775 hardware
-- ✅ Configure passwordless sudo
-- ✅ Add plugin to your `.zshrc`
-- ✅ Configure auto-loading of kernel module
-
-After setup, **restart your terminal** or run:
-```bash
+# Reload shell (or restart terminal)
 source ~/.zshrc
 ```
 
-## 📋 Manual Installation
+The installer will:
+1. ✅ Check/install dependencies (lm_sensors, rofi)
+2. ✅ Detect NCT6775/NCT6798 hardware
+3. ✅ Configure passwordless sudo
+4. ✅ Add plugin to `.zshrc`
+5. ✅ Configure auto-loading of kernel module
 
-### 1. Install Dependencies
+---
+
+### Manual Installation
+
 ```bash
+# 1. Install dependencies
 sudo pacman -S lm_sensors rofi
-```
 
-### 2. Load Kernel Module
-```bash
+# 2. Load kernel module
 sudo modprobe nct6775
-```
 
-### 3. Configure Sudoers
-```bash
-sudo cp fanctrl_sudoers_zsh /etc/sudoers.d/fanctrl
-sudo chmod 0440 /etc/sudoers.d/fanctrl
-# Edit the file to replace 'quinton' with your username if needed
-```
+# 3. Add plugin to ~/.zshrc
+cat >> ~/.zshrc << 'EOF'
 
-### 4. Add Plugin to Zshrc
-Add this to `~/.zshrc`:
-```bash
 # ASUS Fan Control Plugin
-if [ -f "/home/quinton/asus--fanctrl--desktop-/fan_control_zsh_plugin.zsh" ]; then
-    source "/home/quinton/asus--fanctrl--desktop-/fan_control_zsh_plugin.zsh"
+if [ -f "/path/to/fan_control_zsh_plugin.zsh" ]; then
+    source "/path/to/fan_control_zsh_plugin.zsh"
 fi
-```
+EOF
 
-### 5. Reload Shell
-```bash
+# 4. Install sudoers (replace USERNAME with your username)
+sudo sed "s/USERNAME_PLACEHOLDER/$(whoami)/g" fanctrl_sudoers_zsh | \
+  sudo tee /etc/sudoers.d/fanctrl
+sudo chmod 0440 /etc/sudoers.d/fanctrl
+
+# 5. Reload shell
 source ~/.zshrc
 ```
 
-## 🎯 Usage
+---
 
-### Check Status
+## Usage
+
+### Quick Commands
+
+| Command | Alias | Description |
+|---------|-------|-------------|
+| `fanctrl-status` | `fcs` | Show fan status |
+| `fanctrl-silent` | `fcsilent` | Silent mode (30%) |
+| `fanctrl-quiet` | `fcquiet` | Quiet mode (50%) |
+| `fanctrl-performance` | `fcperf` | Performance (80%) |
+| `fanctrl-max` | `fcmax` | Max speed (100%) |
+| `fanctrl-auto` | `fcauto` | Return to auto |
+| `fanctrl-set` | - | Manual control |
+| `fanctrl-gui` | - | Launch Rofi GUI |
+| `fanctrl-help` | - | Show help |
+
+---
+
+### Examples
+
+#### Check Status
 ```bash
-fanctrl-status
-# or short alias:
-fcs
+$ fcs
+╭──────────────────────────────────────╮
+│       🖥️  ASUS Fan Control Status    │
+╰──────────────────────────────────────╯
+
+🌡️  Temperatures:
+   CPU: 45.0°C
+
+💨  Fan RPMs:
+   Fan3: 587 RPM
+   Fan6: 1724 RPM
+
+🔧  PWM Channels:
+   PWM1:  50% - Smart Fan IV (Auto)
+   PWM3:  43% - Smart Fan IV (Auto)
+   PWM6:  20% - Smart Fan IV (Auto)
 ```
 
-### Quick Presets
+#### Quick Presets
 ```bash
-fanctrl-silent      # 30% - Silent mode (fcsilent)
-fanctrl-quiet       # 50% - Quiet mode (fcquiet)
-fanctrl-performance # 80% - Performance (fcperf)
-fanctrl-max         # 100% - Max speed (fcmax)
-fanctrl-auto        # Return to automatic (fcauto)
+# Silent mode for quiet work
+fcsilent
+
+# Performance mode for gaming/rendering
+fcperf
+
+# Max cooling for stress testing
+fcmax
+
+# Return to automatic control
+fcauto
 ```
 
-### Manual Control
+#### Manual Control
 ```bash
-# Set PWM channel 1 to 60%
+# Set CPU fan (PWM1) to 60%
 fanctrl-set 1 60
 
-# Set PWM channel 3 to 40%
+# Set chassis fan (PWM3) to 40%
 fanctrl-set 3 40
+
+# Set chassis fan (PWM6) to 50%
+fanctrl-set 6 50
 ```
 
-### GUI Control (if rofi installed)
+#### Launch GUI
 ```bash
+# Open Rofi fan control menu
 fanctrl-gui
 ```
 
-### Help
+---
+
+## PWM Channels
+
+| Channel | Typical Use | Notes |
+|---------|-------------|-------|
+| PWM1 | CPU Fan | Primary cooling |
+| PWM2 | CPU Fan 2 / Pump | May be unused |
+| PWM3 | Chassis Fan 1 | Case ventilation |
+| PWM4 | Chassis Fan 2 | May be unused |
+| PWM5 | AIO Pump | May be unused |
+| PWM6 | Chassis Fan 3 | Case ventilation |
+
+**Note:** Your motherboard may have different channel assignments. Use `fcs` to see which channels are active.
+
+---
+
+## Configuration
+
+### Auto-Load Kernel Module
+
+The installer configures auto-loading. To verify:
+
 ```bash
+cat /etc/modules-load.d/nct6775.conf
+# Should output: nct6775
+```
+
+### Sudoers Configuration
+
+Passwordless sudo is configured for minimal PWM control:
+
+```bash
+# Verify configuration
+sudo visudo -c -f /etc/sudoers.d/fanctrl
+
+# Expected output:
+# /etc/sudoers.d/fanctrl: parsed OK
+```
+
+### Welcome Message
+
+Enable welcome message on shell load by editing the plugin file:
+
+```bash
+# Uncomment this line in fan_control_zsh_plugin.zsh
+_fanctrl_welcome
+```
+
+---
+
+## Advanced Usage
+
+### Scripting Examples
+
+#### Temperature-Based Control
+```bash
+#!/bin/bash
+# Simple temperature-based fan control
+
+temp=$(sensors | grep 'Tctl:' | awk '{print $2}' | sed 's/+//g' | cut -d'.' -f1)
+
+if [ "$temp" -gt 70 ]; then
+    fanctrl-max
+elif [ "$temp" -gt 50 ]; then
+    fanctrl-performance
+elif [ "$temp" -gt 30 ]; then
+    fanctrl-quiet
+else
+    fanctrl-silent
+fi
+```
+
+#### Cron Job for Scheduled Control
+```bash
+# Edit crontab
+crontab -e
+
+# Add scheduled performance mode during work hours
+0 9 * * 1-5 /home/username/.config/noctalia/plugins/asus-fan-control/fanctrl-performance
+0 18 * * 1-5 /home/username/.config/noctalia/plugins/asus-fan-control/fanctrl-quiet
+```
+
+#### System Monitor Integration
+```bash
+# Add to .zshrc for status in prompt
+prompt_fanctrl() {
+    local temp=$(sensors | grep 'Tctl:' | awk '{print $2}' | sed 's/+//g')
+    echo "%{$fg[green]%}${temp}%{$reset_color%}"
+}
+```
+
+---
+
+## Integration with Window Managers
+
+### Hyprland
+
+Add to `~/.config/hypr/hyprland.conf`:
+
+```bash
+# Fan control keybinds using zsh plugin aliases
+bind = CTRL ALT, F, exec, fanctrl-gui
+bind = CTRL ALT, 1, exec, fanctrl-silent
+bind = CTRL ALT, 2, exec, fanctrl-quiet
+bind = CTRL ALT, 3, exec, fanctrl-performance
+bind = CTRL ALT, 0, exec, fanctrl-auto
+bind = CTRL ALT, T, exec, rofi -e "$(sensors)" -theme-str 'window {width: 400px;}'
+```
+
+### i3/Sway
+
+Add to `~/.config/i3/config` or `~/.config/sway/config`:
+
+```bash
+# Fan control keybinds
+bindsym Ctrl+Mod1+f exec --no-startup-id fanctrl-gui
+bindsym Ctrl+Mod1+1 exec --no-startup-id fanctrl-silent
+bindsym Ctrl+Mod1+2 exec --no-startup-id fanctrl-quiet
+bindsym Ctrl+Mod1+3 exec --no-startup-id fanctrl-performance
+bindsym Ctrl+Mod1+0 exec --no-startup-id fanctrl-auto
+```
+
+### GNOME/KDE
+
+Use system keyboard shortcuts:
+1. Open Settings → Keyboard Shortcuts
+2. Add custom shortcuts pointing to `fanctrl-silent`, `fanctrl-quiet`, etc.
+
+---
+
+## Troubleshooting
+
+### Plugin Not Loading
+
+```bash
+# Check if plugin is sourced
+grep fan_control ~/.zshrc
+
+# Check if file exists
+ls -la /path/to/fan_control_zsh_plugin.zsh
+
+# Reload shell
+source ~/.zshrc
+
+# Test command
 fanctrl-help
 ```
 
-## 🎨 Aliases
-
-| Alias | Command | Description |
-|-------|---------|-------------|
-| `fcs` | fanctrl-status | Show status |
-| `fcsilent` | fanctrl-silent | Silent mode |
-| `fcquiet` | fanctrl-quiet | Quiet mode |
-| `fcperf` | fanctrl-performance | Performance mode |
-| `fcmax` | fanctrl-max | Max speed |
-| `fcauto` | fanctrl-auto | Auto mode |
-
-## 🔧 PWM Channels
-
-- **PWM1** - CPU Fan (usually connected here)
-- **PWM3** - Fan3 (chassis fan)
-- **PWM6** - Fan6 (chassis fan)
-
-## 🛠️ Troubleshooting
+---
 
 ### Hardware Not Detected
+
 ```bash
 # Check if module is loaded
 lsmod | grep nct6775
 
-# Load manually if needed
+# Load manually
 sudo modprobe nct6775
 
 # Check for chip
 ls /sys/class/hwmon/hwmon*/name | xargs cat
+
+# Run sensors-detect
+sudo sensors-detect
 ```
 
+---
+
 ### Permission Denied
+
 ```bash
 # Verify sudoers configuration
 sudo visudo -c -f /etc/sudoers.d/fanctrl
 
+# Test sudo access
+echo 1 | sudo tee /sys/class/hwmon/hwmon5/pwm1_enable
+
 # Reinstall if needed
-sudo cp fanctrl_sudoers_zsh /etc/sudoers.d/fanctrl
-sudo chmod 0440 /etc/sudoers.d/fanctrl
+./setup_zsh_plugin.sh
 ```
 
-### Plugin Not Loading
-```bash
-# Check if plugin path is correct in .zshrc
-grep fan_control ~/.zshrc
+---
 
-# Source manually
-source /home/quinton/asus--fanctrl--desktop-/fan_control_zsh_plugin.zsh
-```
-
-## 📦 Files
-
-- `fan_control_zsh_plugin.zsh` - Main zsh plugin (source this)
-- `fanctrl_sudoers_zsh` - Sudoers configuration
-- `setup_zsh_plugin.sh` - Automated setup script
-- `fan_control.sh` - Original CLI tool (also available)
-- `rofi_fan_control.sh` - GUI interface (requires rofi)
-
-## ⚙️ Advanced: Smart Daemon
-
-For temperature-based automatic control:
+### Command Not Found
 
 ```bash
-# Configure daemon
-./smart_fan_daemon.sh config
+# Check PATH
+echo $PATH
 
-# Run daemon
-./smart_fan_daemon.sh run
+# Source plugin manually
+source /path/to/fan_control_zsh_plugin.zsh
 
-# Or use systemd service
-sudo systemctl enable smart-fan-daemon
-sudo systemctl start smart-fan-daemon
+# Verify aliases
+alias | grep fanctrl
 ```
 
-## 🔒 Security
+---
 
-The sudoers configuration only allows specific PWM control commands:
-- `/usr/bin/tee /sys/class/hwmon/hwmon*/pwm*`
-- `/usr/bin/tee /sys/devices/platform/nct6775.*/hwmon/hwmon*/pwm*`
+### Rofi GUI Not Working
 
-This is the minimum required for fan control with no broader system access.
+```bash
+# Check if rofi is installed
+which rofi
 
-## ⚠️ Disclaimer
+# Install if missing
+sudo pacman -S rofi
 
-Use at your own risk. Monitor system temperatures to ensure adequate cooling. The authors are not responsible for hardware damage.
+# Test rofi
+rofi -e "test"
+
+# Run GUI directly
+/path/to/rofi_fan_control.sh
+```
+
+---
+
+## Uninstallation
+
+```bash
+# Remove from ~/.zshrc
+sed -i '/fan_control_zsh_plugin/d' ~/.zshrc
+
+# Remove sudoers
+sudo rm /etc/sudoers.d/fanctrl
+
+# Remove module auto-load
+sudo rm /etc/modules-load.d/nct6775.conf
+
+# Reload shell
+source ~/.zshrc
+```
+
+---
+
+## Development
+
+### Plugin Structure
+
+```
+fan_control_zsh_plugin.zsh    # Main plugin file
+fanctrl_sudoers_zsh           # Sudoers configuration
+setup_zsh_plugin.sh           # Installer
+```
+
+### Adding Custom Commands
+
+Edit `fan_control_zsh_plugin.zsh`:
+
+```bash
+# Add custom function
+fanctrl-custom() {
+    echo "Custom fan control"
+    _fanctrl_set_speed 1 45
+    _fanctrl_set_speed 3 45
+}
+
+# Add alias
+alias fccustom='fanctrl-custom'
+```
+
+---
+
+## Requirements
+
+- **zsh** shell
+- **Linux** with NCT6775/NCT6798 chip
+- **lm_sensors** package
+- **rofi** (optional, for GUI)
+- **sudo** access
+
+---
+
+## Security
+
+The plugin uses **sudoers** for privileged operations:
+
+- Only allows `tee` commands to PWM sysfs files
+- Restricted to specific hardware paths
+- No password caching or storage
+- Minimal privilege escalation scope
+
+**Sudoers allows:**
+- Writing to `/sys/class/hwmon/hwmon*/pwm*`
+- Writing to `/sys/class/hwmon/hwmon*/pwm*_enable`
+- Running `asus-fanctrl-detect`
+
+---
+
+## Tips
+
+### 1. Add Status to Prompt
+```bash
+# Add to ~/.zshrc
+PROMPT='$(fanctrl-status 2>/dev/null | head -1)'$PROMPT
+```
+
+### 2. Create Custom Presets
+```bash
+# Add to ~/.zshrc
+alias fcnight='fanctrl-set 1 20; fanctrl-set 3 20'  # Night mode
+alias fcturbo='fanctrl-set 1 100; fanctrl-set 3 80' # Turbo mode
+```
+
+### 3. Quick Temperature Check
+```bash
+# Add to ~/.zshrc
+alias temp='sensors | grep -E "(Tctl|SYSTIN)"'
+```
+
+---
+
+## Contributing
+
+Contributions welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch
+3. Test on your hardware
+4. Submit a pull request
+
+---
+
+## License
+
+MIT License - see [LICENSE](../LICENSE) for details.
+
+---
+
+## Disclaimer
+
+This software controls hardware fans. Use at your own risk. Monitor system temperatures to ensure adequate cooling. The authors are not responsible for hardware damage.
+
+---
+
+**Stay cool and code on! 🌡️💻**

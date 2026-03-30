@@ -1,250 +1,284 @@
-# ASUS ROG B550-F Fan Control System
+# ASUS Fan Control System
 
-A comprehensive fan control solution for the ASUS ROG STRIX B550-F motherboard with NCT6775 chip, featuring GUI control, keyboard shortcuts, and smart temperature-based automation.
+> Complete fan control solution for ASUS ROG STRIX B550-F motherboards with NCT6775/NCT6798 chips
 
-![Fan Control Demo](https://img.shields.io/badge/Platform-Linux-blue) ![Hardware-ASUS_B550F-green](https://img.shields.io/badge/Hardware-ASUS_B550F-green) ![License-MIT-yellow](https://img.shields.io/badge/License-MIT-yellow)
+[![Platform](https://img.shields.io/badge/Platform-Linux-blue)]()
+[![Hardware](https://img.shields.io/badge/Hardware-ASUS_B550F-green)]()
+[![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
+[![Shell](https://img.shields.io/badge/Shell-Bash-orange)]()
 
-## ✨ Features
+---
 
-- 🎛️ **GUI Fan Control** - Clean Rofi-based interface for easy fan management
-- ⌨️ **Keyboard Shortcuts** - Hyprland keybindings for instant fan control
-- 🤖 **Smart Automation** - Temperature-based automatic fan control daemon
-- 🔧 **Manual Control** - Precise PWM control for each fan channel
-- 📊 **Real-time Monitoring** - Live temperature and RPM monitoring
-- 🎯 **Quick Presets** - Silent, Quiet, Performance, and Auto modes
-- 🔒 **Secure** - Passwordless sudo configuration for seamless operation
+## 🌟 Features
 
-## 🖥️ Screenshots
+- **🎛️ Multiple Interfaces** - CLI, Rofi GUI, Noctalia Shell plugin, Zsh integration
+- **🤖 Smart Automation** - Temperature-based automatic fan control daemon
+- **⌨️ Keyboard Shortcuts** - Hyprland keybindings for instant control
+- **📊 Real-time Monitoring** - Live temperature and RPM monitoring
+- **🎯 Quick Presets** - Silent, Quiet, Performance, and Max modes
+- **🔒 Secure** - Polkit/sudoers with minimal privilege escalation
 
-### Main Control Interface
-- Temperature monitoring with real-time updates
-- Individual PWM channel control (PWM1, PWM3, PWM6)
-- Fan RPM display for connected fans
+---
 
-### Quick Presets
-- **Silent Mode**: 30% fan speed for quiet operation
-- **Quiet Mode**: 50% fan speed for balanced noise/cooling
-- **Performance Mode**: 80% fan speed for high-performance tasks
-- **Auto Mode**: Return to BIOS automatic control
+## 🚀 Quick Start
 
-## 🚀 Quick Installation
-
-### One-Command Installation
+### Option 1: Noctalia Shell Plugin (Recommended for Noctalia users)
 ```bash
-git clone https://github.com/yourusername/asus-b550f-fanctrl.git
-cd asus-b550f-fanctrl
+./install_noctalia_plugin.sh
+```
+Provides: Bar widget with temperature badge + Full GUI control panel
+
+### Option 2: Zsh Plugin (CLI-focused)
+```bash
+./setup_zsh_plugin.sh
+source ~/.zshrc
+```
+Provides: Terminal aliases (`fcs`, `fcsilent`, `fcquiet`, `fcperf`)
+
+### Option 3: Complete System (All components)
+```bash
 ./install_complete_fanctrl.sh
 ```
+Provides: Scripts + GUI + Daemon + Keybindings + Desktop entry
 
-That's it! The script will automatically:
-- Detect your Linux distribution
-- Install required dependencies (rofi, lm-sensors)
-- Detect NCT6775 hardware automatically
-- Configure passwordless sudo
-- Set up Hyprland keybindings
-- Test the complete installation
+---
 
-## 💻 Supported Systems
+## 📋 Usage
 
-### Distributions
-- ✅ Arch Linux / CachyOS / Manjaro
-- ✅ Ubuntu / Debian
-- ✅ Fedora / RHEL / CentOS
-- ✅ openSUSE
+### CLI Commands
+```bash
+# Check status
+fanctrl-status          # or: fcs
 
-### Hardware Requirements
-- ASUS ROG STRIX B550-F motherboard
-- NCT6775 Super I/O chip
-- Linux kernel with nct6775 module support
+# Quick presets
+fanctrl-silent          # 30% - Silent mode
+fanctrl-quiet           # 50% - Quiet mode
+fanctrl-performance     # 80% - Performance mode
+fanctrl-max             # 100% - Max speed
+fanctrl-auto            # Return to BIOS control
 
-### Desktop Environments
-- **Hyprland** (automatic keybinding configuration)
-- **Any X11/Wayland environment** (manual configuration needed)
+# Manual control
+fanctrl-set 1 60        # Set PWM1 (CPU fan) to 60%
+fanctrl-set 3 40        # Set PWM3 to 40%
+```
 
-## 🎮 Usage
+### Noctalia Shell IPC
+```bash
+# Open panel
+qs -c noctalia-shell ipc call plugin:asus-fan-control openPanel
 
-### Keyboard Shortcuts (Hyprland)
+# Presets
+qs -c noctalia-shell ipc call plugin:asus-fan-control setSilent
+qs -c noctalia-shell ipc call plugin:asus-fan-control setPerformance
+
+# Get status (JSON)
+qs -c noctalia-shell ipc call plugin:asus-fan-control getStatus
+```
+
+### Smart Daemon
+```bash
+# Configure
+./smart_fan_daemon.sh config
+
+# Run as systemd service
+sudo systemctl enable --now smart-fan-daemon
+
+# View logs
+journalctl -u smart-fan-daemon -f
+```
+
+---
+
+## ⌨️ Keyboard Shortcuts (Hyprland)
+
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Alt+F` | Open fan control GUI |
 | `Ctrl+Alt+1` | Silent mode (30%) |
 | `Ctrl+Alt+2` | Quiet mode (50%) |
 | `Ctrl+Alt+3` | Performance mode (80%) |
-| `Ctrl+Alt+0` | Auto mode (BIOS control) |
+| `Ctrl+Alt+0` | Auto mode (BIOS) |
 | `Ctrl+Alt+T` | Temperature monitoring |
 
-### Command Line
-```bash
-# Show current status
-./fan_control.sh
+---
 
-# Set specific fan speed
-./fan_control.sh set 1 60    # Set PWM1 to 60%
+## 🖥️ Interfaces Comparison
 
-# Return to automatic mode
-./fan_control.sh auto 1      # Set PWM1 to auto
+| Feature | Noctalia Plugin | Zsh Plugin | Rofi GUI | CLI Script |
+|---------|----------------|------------|----------|------------|
+| Bar Widget | ✅ | ❌ | ❌ | ❌ |
+| Control Panel | ✅ | ❌ | ✅ | ❌ |
+| Terminal Commands | Via IPC | ✅ Native | ❌ | ✅ |
+| Resource Usage | Medium | Minimal | Low | Minimal |
+| Best For | GUI lovers | Terminal users | Quick access | Scripts |
 
-# Launch GUI
-./rofi_fan_control.sh
+---
 
-# Configure smart daemon
-./smart_fan_daemon.sh config
+## 🛠️ Hardware Requirements
 
-# Run smart daemon
-./smart_fan_daemon.sh run
-```
+- **Motherboard:** ASUS ROG STRIX B550-F (or compatible NCT6775/NCT6798 chip)
+- **Kernel Module:** `nct6775`
+- **Packages:** `lm_sensors`, `rofi` (for GUI)
+- **Desktop:** Noctalia Shell (for plugin) or any WM/DE (for CLI/GUI)
 
-## 🧠 Smart Fan Daemon
+---
 
-The smart fan daemon provides temperature-based automatic fan control:
+## 📦 Installation Options
 
-- **Configurable temperature thresholds** (default: 30°C - 70°C)
-- **Configurable fan speed range** (default: 20% - 100%)
-- **Linear interpolation** between temperature points
-- **Graceful shutdown** returns fans to BIOS control
+### One-Command Installers
 
-### Configuration Example
-```bash
-./smart_fan_daemon.sh config
-```
+| Installer | Installs | Best For |
+|-----------|----------|----------|
+| `./install_noctalia_plugin.sh` | Noctalia plugin + polkit | Noctalia Shell users |
+| `./setup_zsh_plugin.sh` | Zsh plugin + sudoers | Terminal-focused users |
+| `./install_complete_fanctrl.sh` | All scripts + keybinds + daemon | Full system setup |
 
-Configuration is saved to `~/.fan_control_config` and persists between sessions.
+### Manual Installation
 
-## 🔧 Manual Installation
+See [INSTALL.md](INSTALL.md) for detailed manual installation steps.
 
-If the automatic installer doesn't work for your setup:
+---
 
-### 1. Install Dependencies
-```bash
-# Arch/CachyOS
-sudo pacman -S rofi lm_sensors
-
-# Ubuntu/Debian  
-sudo apt install rofi lm-sensors
-
-# Fedora
-sudo dnf install rofi lm_sensors
-```
-
-### 2. Load Kernel Module
-```bash
-sudo modprobe nct6775
-```
-
-### 3. Install Sudoers Configuration
-```bash
-sudo ./install_sudoers.sh
-```
-
-### 4. Configure Window Manager
-Add the keybindings from `hyprland_fan_keybind.conf` to your window manager configuration.
-
-## 🛠️ Hardware Detection
-
-The system automatically detects your NCT6775 chip location. If you need to manually check:
-
-```bash
-# Find NCT6775 devices
-find /sys/devices/platform/nct6775.* -name "hwmon"
-
-# Check available PWM channels
-ls /sys/devices/platform/nct6775.*/hwmon/hwmon*/pwm*
-```
-
-## 🧪 Testing
-
-Test your installation:
-```bash
-./test_fan_gui.sh
-```
-
-This will verify:
-- Rofi functionality
-- Script permissions
-- Hardware access
-- Sudo configuration
-
-## 📋 File Structure
+## 📁 Project Structure
 
 ```
-asus-b550f-fanctrl/
-├── install_complete_fanctrl.sh    # One-click installer
-├── fan_control.sh                 # Core fan control script
-├── rofi_fan_control.sh           # GUI interface
-├── smart_fan_daemon.sh           # Smart automation daemon
-├── test_fan_gui.sh               # Testing utilities
-├── install_sudoers.sh            # Sudoers configuration (legacy)
-├── hyprland_fan_keybind.conf     # Keybinding reference
-├── README.md                     # This file
-├── README_INSTALLATION.md        # Detailed installation guide
-└── FAN_CONTROL_GUIDE.md         # Original documentation
+asus--fanctrl--desktop-/
+├── Core Scripts
+│   ├── fan_control.sh              # Main CLI tool
+│   ├── fan_control_lib.sh          # Shared library
+│   ├── rofi_fan_control.sh         # Rofi GUI
+│   └── smart_fan_daemon.sh         # Temperature daemon
+│
+├── Noctalia Plugin
+│   ├── noctalia-plugin/
+│   │   ├── Main.qml               # Background logic
+│   │   ├── BarWidget.qml          # Bar widget
+│   │   ├── Panel.qml              # Control panel
+│   │   ├── Settings.qml           # Settings UI
+│   │   ├── asus-fanctrl-detect    # Hardware detection
+│   │   └── 50-asus-fanctrl.rules  # Polkit rules
+│   └── install_noctalia_plugin.sh
+│
+├── Zsh Plugin
+│   ├── fan_control_zsh_plugin.zsh
+│   ├── setup_zsh_plugin.sh
+│   └── fanctrl_sudoers_zsh
+│
+├── Systemd Integration
+│   ├── smart-fan-daemon.service
+│   ├── fan_control_sudoers
+│   └── install_systemd_service.sh
+│
+├── Installers
+│   ├── install_complete_fanctrl.sh
+│   ├── install_sudoers.sh
+│   ├── install_fixes.sh
+│   └── install.sh
+│
+└── Documentation
+    ├── QUICK_START.md
+    ├── INSTALL.md
+    ├── INTEGRATION_OPTIONS.md
+    ├── FAN_CONTROL_GUIDE.md
+    ├── SYSTEMD_SERVICE.md
+    ├── NOCTALIA_PLUGIN_README.md
+    └── ZSH_PLUGIN_README.md
 ```
 
-## 🔒 Security
+---
 
-- Uses sudoers configuration for specific fan control commands only
-- No password storage or caching
-- Minimal privilege escalation scope
-- Validates all sudoers configurations before applying
-
-## 🐛 Troubleshooting
+## 🔧 Troubleshooting
 
 ### Hardware Not Detected
 ```bash
-# Load the kernel module
+# Load kernel module
 sudo modprobe nct6775
 
-# Check if chip is detected
-ls /sys/devices/platform/nct6775.*
-```
+# Check detection
+ls /sys/class/hwmon/hwmon*/name | xargs cat
 
-### Manual Sudoers Configuration
-If the automatic installer fails, you can manually create the sudoers configuration:
-```bash
-# Create sudoers file with correct permissions
-sudo sh -c "echo \"$USER ALL=(root) NOPASSWD: /usr/bin/tee\" > /etc/sudoers.d/fanctrl"
-sudo chmod 0440 /etc/sudoers.d/fanctrl
+# Run detection helper
+asus-fanctrl-detect status
 ```
 
 ### Permission Denied
 ```bash
-# Check sudoers configuration
-sudo visudo -c -f /etc/sudoers.d/fan-control
+# For Noctalia plugin: restart polkit
+sudo systemctl restart polkit
 
-# Reinstall if needed
-sudo ./install_sudoers.sh
+# For CLI: verify sudoers
+sudo visudo -c -f /etc/sudoers.d/fanctrl
 ```
 
-### GUI Not Working
+### Plugin Not Loading (Noctalia)
 ```bash
-# Test rofi
-rofi -e "Test message"
+# Reload shell
+qs -c noctalia-shell reload
 
-# Check if X11/Wayland is running
-echo $DISPLAY
-echo $WAYLAND_DISPLAY
+# Check logs
+journalctl --user -u noctalia-shell -f
 ```
+
+### Verify Installation
+```bash
+./scripts/verify_fanctrl.sh
+```
+
+---
+
+## 📖 Documentation
+
+| Document | Description |
+|----------|-------------|
+| [QUICK_START.md](QUICK_START.md) | Quick installation and usage |
+| [INSTALL.md](INSTALL.md) | Detailed installation guide |
+| [INTEGRATION_OPTIONS.md](INTEGRATION_OPTIONS.md) | Plugin comparison and selection |
+| [FAN_CONTROL_GUIDE.md](FAN_CONTROL_GUIDE.md) | Hardware setup and usage guide |
+| [SYSTEMD_SERVICE.md](SYSTEMD_SERVICE.md) | Daemon and systemd setup |
+| [NOCTALIA_PLUGIN_README.md](NOCTALIA_PLUGIN_README.md) | Noctalia plugin documentation |
+| [ZSH_PLUGIN_README.md](ZSH_PLUGIN_README.md) | Zsh plugin documentation |
+
+---
+
+## 🔒 Security
+
+- **Polkit rules** (Noctalia) - Passwordless control via `asus-fanctrl-detect`
+- **Sudoers configuration** (CLI) - Restricted to PWM sysfs files only
+- **Systemd hardening** - `ProtectSystem`, `NoNewPrivileges`, resource limits
+- **Minimal scope** - Only PWM control commands, no broader system access
+
+---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit issues or pull requests.
+Contributions welcome! Please:
 
-### Development Setup
 1. Fork the repository
 2. Create a feature branch
 3. Test on your hardware
 4. Submit a pull request
 
+---
+
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
 
 ## ⚠️ Disclaimer
 
-This software controls hardware fans. Use at your own risk. Monitor your system temperatures and ensure adequate cooling at all times. The authors are not responsible for any hardware damage.
+This software controls hardware fans. Use at your own risk. Monitor system temperatures to ensure adequate cooling. The authors are not responsible for hardware damage.
+
+---
 
 ## 🙏 Acknowledgments
 
 - NCT6775 kernel module developers
+- Noctalia Shell team for the plugin system
 - Rofi project for the excellent menu system
-- ASUS for detailed hardware documentation
+- ASUS for hardware documentation
+
+---
+
+**Made with ❤️ for ASUS ROG STRIX B550-F users**

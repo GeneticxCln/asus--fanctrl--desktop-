@@ -1,50 +1,91 @@
-# 🚀 Quick Start - ASUS Fan Control
+# 🚀 Quick Start Guide
 
-## Choose Your Integration
+> Get your ASUS fan control system running in minutes
 
-### 🎯 For Noctalia Shell (Recommended)
+---
+
+## Choose Your Setup
+
+### 🎯 For Noctalia Shell Users (Recommended)
+
+**Best for:** Desktop integration, GUI lovers, bar widget fans
+
 ```bash
-# Install the native Noctalia plugin
+# One command install
 ./install_noctalia_plugin.sh
 
-# After installation:
-# - Click the fan icon in your bar
-# - Use the control panel
-# - Configure in Settings
+# Reload Noctalia Shell
+qs -c noctalia-shell reload
 ```
 
-### 💻 For Terminal/CLI
+**You get:**
+- ✅ Fan icon in your bar with temperature badge
+- ✅ Click to open full control panel
+- ✅ Slider controls for PWM1, PWM3, PWM6
+- ✅ Quick preset buttons (Silent, Quiet, Performance, Max, Auto)
+- ✅ Real-time temperature and RPM monitoring
+
+---
+
+### 💻 For Terminal Users
+
+**Best for:** CLI workflow, minimal resources, any desktop environment
+
 ```bash
-# Install the zsh plugin
+# Install zsh plugin
 ./setup_zsh_plugin.sh
 
-# Then reload your shell
+# Activate (or restart terminal)
 source ~/.zshrc
-
-# Quick commands:
-fcs          # Check status
-fcsilent     # Silent mode (30%)
-fcquiet      # Quiet mode (50%)
-fcperf       # Performance (80%)
 ```
 
----
-
-## ⚡ One-Command Installers
-
-| Installer | What It Does |
-|-----------|--------------|
-| `./install_noctalia_plugin.sh` | Installs Noctalia Shell plugin with GUI |
-| `./setup_zsh_plugin.sh` | Installs zsh plugin with CLI commands |
-| `./install_complete_fanctrl.sh` | Original full system installer |
+**You get:**
+- ✅ `fcs` - Quick status check
+- ✅ `fcsilent` - Silent mode (30%)
+- ✅ `fcquiet` - Quiet mode (50%)
+- ✅ `fcperf` - Performance mode (80%)
+- ✅ `fanctrl-set 1 60` - Manual control
 
 ---
 
-## 📋 Quick Commands Reference
+### 🏗️ Complete System Install
 
-### Noctalia Plugin (IPC Commands)
+**Best for:** Full setup with all components, systemd daemon, keybindings
+
 ```bash
-# Open panel
+./install_complete_fanctrl.sh
+```
+
+**You get:**
+- ✅ All CLI scripts installed
+- ✅ Rofi GUI interface
+- ✅ Smart fan daemon with systemd
+- ✅ Hyprland keybindings (if config exists)
+- ✅ Desktop menu entry
+
+---
+
+## ⚡ Quick Commands Reference
+
+### Zsh Plugin Aliases
+
+| Command | Alias | Action |
+|---------|-------|--------|
+| `fanctrl-status` | `fcs` | Show fan status |
+| `fanctrl-silent` | `fcsilent` | Silent mode (30%) |
+| `fanctrl-quiet` | `fcquiet` | Quiet mode (50%) |
+| `fanctrl-performance` | `fcperf` | Performance (80%) |
+| `fanctrl-max` | `fcmax` | Max speed (100%) |
+| `fanctrl-auto` | `fcauto` | Return to auto |
+| `fanctrl-set 1 60` | - | Set PWM1 to 60% |
+| `fanctrl-gui` | - | Launch Rofi GUI |
+
+---
+
+### Noctalia Shell IPC Commands
+
+```bash
+# Open control panel
 qs -c noctalia-shell ipc call plugin:asus-fan-control openPanel
 
 # Presets
@@ -52,61 +93,66 @@ qs -c noctalia-shell ipc call plugin:asus-fan-control setSilent
 qs -c noctalia-shell ipc call plugin:asus-fan-control setQuiet
 qs -c noctalia-shell ipc call plugin:asus-fan-control setPerformance
 qs -c noctalia-shell ipc call plugin:asus-fan-control setMax
+qs -c noctalia-shell ipc call plugin:asus-fan-control setAuto
 
-# Get status (JSON)
+# Get status (JSON output)
 qs -c noctalia-shell ipc call plugin:asus-fan-control getStatus
+
+# Set specific PWM channel
+qs -c noctalia-shell ipc call plugin:asus-fan-control setPwm 1 60
 ```
 
-### Zsh Plugin (Aliases)
-```bash
-fcs          # Status display
-fcsilent     # Silent (30%)
-fcquiet      # Quiet (50%)
-fcperf       # Performance (80%)
-fcmax        # Max speed (100%)
-fcauto       # Return to auto
-fanctrl-gui  # Rofi GUI (if installed)
-```
+---
 
-### Original Scripts
+### CLI Scripts
+
 ```bash
-./fan_control.sh status              # Show status
-./fan_control.sh set 1 60            # Set PWM1 to 60%
-./fan_control.sh auto 1              # PWM1 to auto mode
-./rofi_fan_control.sh                # Rofi GUI
-./smart_fan_daemon.sh config         # Configure daemon
-./smart_fan_daemon.sh run            # Run daemon
+# Status
+./fan_control.sh status
+
+# Set fan speed
+./fan_control.sh set 1 60      # PWM1 to 60%
+./fan_control.sh set 3 40      # PWM3 to 40%
+
+# Return to auto
+./fan_control.sh auto 1        # PWM1 to automatic
+./fan_control.sh auto 3        # PWM3 to automatic
+
+# Launch GUI
+./rofi_fan_control.sh
+
+# Daemon control
+./smart_fan_daemon.sh config   # Configure
+./smart_fan_daemon.sh run      # Run manually
+sudo systemctl start smart-fan-daemon  # Via systemd
 ```
 
 ---
 
 ## 🎮 Example Keybinds
 
-### Noctalia Shell Config
-```json
-{
-  "keybinds": {
-    "Ctrl+Alt+F": "qs -c noctalia-shell ipc call plugin:asus-fan-control openPanel",
-    "Ctrl+Alt+1": "qs -c noctalia-shell ipc call plugin:asus-fan-control setSilent",
-    "Ctrl+Alt+2": "qs -c noctalia-shell ipc call plugin:asus-fan-control setQuiet",
-    "Ctrl+Alt+3": "qs -c noctalia-shell ipc call plugin:asus-fan-control setPerformance"
-  }
-}
-```
+### Hyprland Configuration
 
-### Hyprland Config
+Add to `~/.config/hypr/hyprland.conf`:
+
 ```bash
-# Using zsh plugin aliases
-bind = CTRL ALT, F, exec, fanctrl-gui
-bind = CTRL ALT, 1, exec, fanctrl-silent
-bind = CTRL ALT, 2, exec, fanctrl-quiet
-bind = CTRL ALT, 3, exec, fanctrl-performance
+# Fan Control GUI
+bind = CTRL ALT, F, exec, ~/.config/noctalia/plugins/asus-fan-control/Panel.qml
 
-# Or using Noctalia IPC
-bind = CTRL ALT, F, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control openPanel
+# Using Noctalia IPC (recommended if plugin installed)
 bind = CTRL ALT, 1, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control setSilent
 bind = CTRL ALT, 2, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control setQuiet
 bind = CTRL ALT, 3, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control setPerformance
+bind = CTRL ALT, 0, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control setAuto
+
+# Using zsh plugin aliases
+bind = CTRL ALT, 1, exec, fanctrl-silent
+bind = CTRL ALT, 2, exec, fanctrl-quiet
+bind = CTRL ALT, 3, exec, fanctrl-performance
+bind = CTRL ALT, 0, exec, fanctrl-auto
+
+# Temperature monitoring
+bind = CTRL ALT, T, exec, rofi -e "$(sensors | grep -E '(Tctl|SYSTIN|fan):')" -theme-str 'window {width: 400px;}'
 ```
 
 ---
@@ -114,84 +160,139 @@ bind = CTRL ALT, 3, exec, qs -c noctalia-shell ipc call plugin:asus-fan-control 
 ## 🛠️ Troubleshooting Quick Fixes
 
 ### Hardware Not Detected
+
 ```bash
+# Load kernel module
 sudo modprobe nct6775
-sudo sensors-detect
+
+# Check if chip detected
+ls /sys/class/hwmon/hwmon*/name | xargs cat
+
+# Test detection helper
+asus-fanctrl-detect status
 ```
 
-### Noctalia Plugin Not Showing
+---
+
+### Noctalia Plugin Issues
+
 ```bash
+# Reload plugin
 qs -c noctalia-shell reload
+
+# Check logs
+journalctl --user -u noctalia-shell -f
+
+# Verify installation
+ls ~/.config/noctalia/plugins/asus-fan-control/
 ```
 
-### Zsh Plugin Not Working
-```bash
-source ~/.zshrc
-```
+---
 
 ### Permission Denied
+
 ```bash
-# For zsh plugin
+# Noctalia: Restart polkit
 sudo systemctl restart polkit
 
-# Or reinstall
+# CLI: Verify sudoers
+sudo visudo -c -f /etc/sudoers.d/fanctrl
+
+# Reinstall if needed
 ./setup_zsh_plugin.sh
 ```
 
 ---
 
-## 📖 Full Documentation
+### Zsh Plugin Not Loading
 
-| Document | What It Covers |
-|----------|----------------|
-| `NOCTALIA_PLUGIN_README.md` | Noctalia plugin full guide |
-| `ZSH_PLUGIN_README.md` | Zsh plugin full guide |
-| `INTEGRATION_OPTIONS.md` | Comparison of both options |
-| `README.md` | Original project overview |
-| `INSTALL.md` | Original installation guide |
-
----
-
-## 🎯 Recommended Setup
-
-**For most Noctalia users:**
 ```bash
-# Install Noctalia plugin (primary)
-./install_noctalia_plugin.sh
+# Check if sourced
+grep fan_control ~/.zshrc
 
-# Install zsh plugin (for CLI access)
-./setup_zsh_plugin.sh
-
-# Reload everything
+# Reload shell
 source ~/.zshrc
-qs -c noctalia-shell reload
+
+# Test command
+fanctrl-help
 ```
 
-This gives you:
-- ✅ Bar widget with temperature
-- ✅ Full GUI control panel
-- ✅ CLI commands for terminal
-- ✅ Keybind support via IPC
-- ✅ Best of both worlds!
+---
+
+## ✅ Verify Installation
+
+Run the health check:
+
+```bash
+./scripts/verify_fanctrl.sh
+```
+
+Expected output:
+```
+[PASS] Found PWM path: /sys/class/hwmon/hwmon5
+[PASS] Testing channel PWM1
+[PASS] Manual mode set without password
+[PASS] fan_control.sh set 1 40
+[PASS] fan_control.sh auto 1
+[PASS] Health check completed successfully.
+```
 
 ---
 
-## ⚠️ Important Notes
+## 📊 PWM Channels
 
-1. **Requires ASUS motherboard** with NCT6775/NCT6798 chip
-2. **Run installers as normal user** (not root)
-3. **Reload shell/service** after installation
-4. **Monitor temperatures** when testing new fan speeds
-
----
-
-## 🆘 Need Help?
-
-1. Check hardware detection: `sensors`
-2. Verify plugin installed: `ls ~/.config/noctalia/plugins/`
-3. Check logs: `journalctl --user -u noctalia-shell -n 50`
-4. Read full docs: See documentation files above
+| Channel | Typical Use | Notes |
+|---------|-------------|-------|
+| PWM1 | CPU Fan | Primary cooling |
+| PWM3 | Chassis Fan 1 | Case ventilation |
+| PWM6 | Chassis Fan 2 | Case ventilation |
 
 ---
 
-**Good luck and stay cool! 🌡️💨**
+## 🌡️ Temperature Monitoring
+
+```bash
+# Quick temperature check
+sensors | grep -E '(Tctl|SYSTIN)'
+
+# Via zsh plugin
+fcs
+
+# Via Noctalia IPC
+qs -c noctalia-shell ipc call plugin:asus-fan-control getStatus | jq
+```
+
+---
+
+## 🔄 Smart Fan Daemon Setup
+
+For automatic temperature-based control:
+
+```bash
+# 1. Configure thresholds
+./smart_fan_daemon.sh config
+
+# 2. Enable systemd service
+sudo systemctl enable --now smart-fan-daemon
+
+# 3. Monitor
+journalctl -u smart-fan-daemon -f
+```
+
+**Default settings:**
+- Temperature range: 30°C - 70°C
+- Fan speed range: 20% - 100%
+- Update interval: 5 seconds
+
+---
+
+## 📖 Next Steps
+
+- **[INSTALL.md](INSTALL.md)** - Detailed manual installation
+- **[INTEGRATION_OPTIONS.md](INTEGRATION_OPTIONS.md)** - Compare plugin options
+- **[FAN_CONTROL_GUIDE.md](FAN_CONTROL_GUIDE.md)** - Hardware guide
+- **[SYSTEMD_SERVICE.md](SYSTEMD_SERVICE.md)** - Daemon configuration
+
+---
+
+**Need help?** Check the [troubleshooting section](README.md#troubleshooting) or view full documentation above.
