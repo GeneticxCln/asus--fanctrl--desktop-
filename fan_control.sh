@@ -65,10 +65,10 @@ show_status() {
 set_manual_mode() {
     local pwm_channel=$1
     log_info "Setting PWM${pwm_channel} to manual mode..."
-    if echo 1 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" 2>/dev/null; then
+    if echo 1 | sudo -n /usr/bin/tee "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" >/dev/null 2>&1; then
         log_success "PWM${pwm_channel} is now in manual mode"
     else
-        log_error "Failed to set PWM${pwm_channel} to manual mode. Permission denied?"
+        log_error "Failed to set PWM${pwm_channel} to manual mode. Permission denied or password required."
         return 1
     fi
 }
@@ -82,10 +82,10 @@ set_fan_speed() {
     local pwm_value=$((percentage * 255 / 100))
     
     log_info "Setting PWM${pwm_channel} to ${percentage}% (${pwm_value}/255)..."
-    if echo $pwm_value > "${PWM_BASE_PATH}/pwm${pwm_channel}" 2>/dev/null; then
+    if echo $pwm_value | sudo -n /usr/bin/tee "${PWM_BASE_PATH}/pwm${pwm_channel}" >/dev/null 2>&1; then
         log_success "PWM${pwm_channel} set to ${percentage}%"
     else
-        log_error "Failed to set PWM${pwm_channel}. Permission denied?"
+        log_error "Failed to set PWM${pwm_channel}. Permission denied or password required."
         return 1
     fi
 }
@@ -94,10 +94,10 @@ set_fan_speed() {
 set_auto_mode() {
     local pwm_channel=$1
     log_info "Setting PWM${pwm_channel} to automatic mode (Smart Fan IV)..."
-    if echo 5 > "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" 2>/dev/null; then
+    if echo 5 | sudo -n /usr/bin/tee "${PWM_BASE_PATH}/pwm${pwm_channel}_enable" >/dev/null 2>&1; then
         log_success "PWM${pwm_channel} is now in automatic mode"
     else
-        log_error "Failed to set PWM${pwm_channel} to automatic mode. Permission denied?"
+        log_error "Failed to set PWM${pwm_channel} to automatic mode. Permission denied or password required."
         return 1
     fi
 }

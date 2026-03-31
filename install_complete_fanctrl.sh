@@ -144,7 +144,17 @@ install_scripts() {
     cp "$SCRIPT_DIR/smart_fan_daemon.sh" "$INSTALL_DIR/"
     cp "$SCRIPT_DIR/test_fan_gui.sh" "$INSTALL_DIR/"
     
-    # Make scripts executable
+    # 🆕 Deploy the helper utility to a system-wide path
+    print_status "Deploying helper utility to /usr/local/bin..."
+    sudo cp "$SCRIPT_DIR/noctalia-plugin/asus-fanctrl-detect" "/usr/local/bin/asus-fanctrl-detect"
+    sudo chmod +x "/usr/local/bin/asus-fanctrl-detect"
+    
+    # 🆕 Deploy Polkit rules for Noctalia
+    print_status "Deploying Polkit rules..."
+    sudo mkdir -p "/etc/polkit-1/rules.d"
+    sudo cp "$SCRIPT_DIR/noctalia-plugin/50-asus-fanctrl.rules" "/etc/polkit-1/rules.d/50-asus-fanctrl.rules"
+    
+    # Make local scripts executable
     chmod +x "$INSTALL_DIR"/*.sh
     
     # Update hwmon path in scripts to match detected hardware
@@ -166,7 +176,9 @@ install_sudoers() {
 $USERNAME ALL=(root) NOPASSWD: /usr/bin/tee $HWMON_PATH/pwm*_enable
 $USERNAME ALL=(root) NOPASSWD: /usr/bin/tee $HWMON_PATH/pwm*
 $USERNAME ALL=(root) NOPASSWD: /usr/bin/tee $CLASS_HWMON_PATH/pwm*_enable
-$USERNAME ALL=(root) NOPASSWD: /usr/bin/tee $CLASS_HWMON_PATH/pwm*"
+$USERNAME ALL=(root) NOPASSWD: /usr/bin/tee $CLASS_HWMON_PATH/pwm*
+# Authorized helper script
+$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/asus-fanctrl-detect *"
     
     # Create temporary file
     local temp_file=$(mktemp)

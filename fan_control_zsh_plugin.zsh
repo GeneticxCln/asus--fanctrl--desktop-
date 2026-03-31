@@ -62,25 +62,28 @@ _fanctrl_get_temp() {
 _fanctrl_set_speed() {
     local pwm_channel=$1
     local percentage=$2
-    local pwm_path=$(_fanctrl_get_pwm_path)
     
     if [ "$percentage" -lt 0 ] || [ "$percentage" -gt 100 ]; then
         echo "❌ Error: Percentage must be between 0 and 100"
         return 1
     fi
     
-    local pwm_value=$((percentage * 255 / 100))
-    
-    # Set to manual mode
-    echo 1 | sudo tee "${pwm_path}/pwm${pwm_channel}_enable" > /dev/null 2>&1
-    # Set speed
-    echo $pwm_value | sudo tee "${pwm_path}/pwm${pwm_channel}" > /dev/null 2>&1
+    # Prefer centralized helper if it exists
+    if [ -x "/usr/local/bin/asus-fanctrl-detect" ]; then
+        sudo -n /usr/local/bin/asus-fanctrl-detect set-pwm "$pwm_channel" "$percentage" > /dev/null 2>&1
+    else
+        # Fallback to direct tee (authorized by sudoers)
+        local pwm_path=$(_fanctrl_get_pwm_path)
+        local pwm_value=$((percentage * 255 / 100))
+        echo 1 | sudo -n /usr/bin/tee "${pwm_path}/pwm${pwm_channel}_enable" > /dev/null 2>&1
+        echo $pwm_value | sudo -n /usr/bin/tee "${pwm_path}/pwm${pwm_channel}" > /dev/null 2>&1
+    fi
     
     if [ $? -eq 0 ]; then
-        echo "✅ PWM${pwm_channel} set to ${percentage}% (${pwm_value}/255)"
+        echo "✅ PWM${pwm_channel} set to ${percentage}%"
         return 0
     else
-        echo "❌ Failed to set PWM${pwm_channel}"
+        echo "❌ Failed to set PWM${pwm_channel}. Run 'sudo ./install_sudoers.sh' if password prompt persists."
         return 1
     fi
 }
@@ -88,9 +91,13 @@ _fanctrl_set_speed() {
 # Set fan to auto mode
 _fanctrl_set_auto() {
     local pwm_channel=$1
-    local pwm_path=$(_fanctrl_get_pwm_path)
     
-    echo 5 | sudo tee "${pwm_path}/pwm${pwm_channel}_enable" > /dev/null 2>&1
+    if [ -x "/usr/local/bin/asus-fanctrl-detect" ]; then
+        sudo -n /usr/local/bin/asus-fanctrl-detect set-enable "$pwm_channel" 5 > /dev/null 2>&1
+    else
+        local pwm_path=$(_fanctrl_get_pwm_path)
+        echo 5 | sudo -n /usr/bin/tee "${pwm_path}/pwm${pwm_channel}_enable" > /dev/null 2>&1
+    fi
     
     if [ $? -eq 0 ]; then
         echo "✅ PWM${pwm_channel} returned to automatic mode"
